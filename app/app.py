@@ -5,8 +5,8 @@ import os
 app = Flask(__name__)
 app.secret_key = 'random_secret_key'  # Replace with something secure
 
-# Load the original diagnoses→group mapping
-with open('reduced_diagnoses.json', 'r') as f:
+# Load the original diagnoses, group mapping
+with open('diagnoses.json', 'r') as f:
     diagnoses_data = json.load(f)
 
 # Group diagnoses by group name
@@ -14,7 +14,7 @@ grouped_data = {}
 for diagnosis, group in diagnoses_data.items():
     grouped_data.setdefault(group, []).append(diagnosis)
 
-# Convert to a list for easy iteration: [ (groupName, [diag1, diag2, ...]), ... ]
+# Convert to a list: [ (groupName, [diag1, diag2, ...]), ... ]
 group_list = [(g, grouped_data[g]) for g in grouped_data]
 
 
@@ -127,16 +127,11 @@ def verify():
     original_group_name, diagnoses = group_list[current_index]
 
     if user_response == 'yes':
-        # If user gave a new name, use it; otherwise keep the original name
         final_name = new_group_name if new_group_name else original_group_name
-
-        # Load existing verified data, update, then save
         verified_data = load_verified_groups()
         verified_data[final_name] = diagnoses
         save_verified_groups(verified_data)
 
-    # If user says 'no', do nothing (don't save this group)
-    # Move to the next group
     session['current_index'] = current_index + 1
     return redirect(url_for('index'))
 
@@ -144,12 +139,10 @@ def verify():
 @app.route('/done')
 def done():
     """
-    When all groups are processed, show a summary of verified results.
-    Also provide a link to reset.
+    Show a summary of verified results. Also provide a link to reset.
     """
     computing_id = session.get('computing_id')
     if not computing_id:
-        # If no computing ID, redirect to index
         return redirect(url_for('index'))
 
     verified_data = load_verified_groups()
@@ -159,8 +152,7 @@ def done():
 @app.route('/reset')
 def reset():
     """
-    Page explaining the reset option, with a link to actually clear data
-    or go back to the main page.
+    Page explaining the reset option, with a link to clear data or go back.
     """
     return render_template('reset.html')
 
@@ -168,21 +160,17 @@ def reset():
 @app.route('/clear_data')
 def clear_data():
     """
-    Clears the session, removes the user's verified file (if it exists),
-    and redirects back to the main page.
+    Clears the session, removes the user's verified file, and returns to index.
     """
     computing_id = session.get('computing_id')
     verified_file = get_verified_file()
 
-    # Clear session
     session.clear()
 
-    # Remove the verified file if it exists
     if verified_file and os.path.exists(verified_file):
         os.remove(verified_file)
 
     return redirect(url_for('index'))
 
 
-if __name__ == '__main__':
-    app.run(debug=True ,port=5001)
+
