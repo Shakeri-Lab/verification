@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Diagnosis Group Verification</title>
+  <script>
+    function toggleGroupNameField() {
+      const yesRadio = document.getElementById('yes-radio');
+      const groupNameField = document.getElementById('group-name-field');
+      groupNameField.style.display = yesRadio && yesRadio.checked ? 'block' : 'none';
+    }
+  </script>
+</head>
+<body>
+{% if computing_id == None %}
+  <h1>Enter Your Computing ID</h1>
+  <form method="POST" action="{{ url_for('index') }}">
+    <label for="computing_id">Computing ID:</label>
+    <input type="text" name="computing_id" required>
+    <button type="submit">Start</button>
+  </form>
+{% else %}
+  <h1>Verify Diagnosis Group</h1>
+  <p>Hello, <strong>{{ computing_id }}</strong>!</p>
+  <p>Group <strong>{{ current_index + 1 }}</strong> of {{ total_groups }}</p>
+
+  <hr>
+  <p>The following diagnoses are under <strong>{{ group_name }}</strong>:</p>
+  <ul>
+    {% for diag in diagnoses %}
+      <li>{{ diag }}</li>
+    {% endfor %}
+  </ul>
+
+  <form action="{{ url_for('verify') }}" method="POST">
+    <p>Does this grouping make sense?</p>
+    <label>
+      <input type="radio" name="group_valid" value="yes" id="yes-radio"
+             onclick="toggleGroupNameField()" required> Yes
+    </label>
+    <label>
+      <input type="radio" name="group_valid" value="no" id="no-radio"
+             onclick="toggleGroupNameField()" required> No
+    </label>
+
+    <div id="group-name-field" style="display:none; margin-top:10px;">
+      <label>Proposed Group Name:</label>
+      <input type="text" name="new_group_name">
+    </div>
+
+    <br><br>
+    <button type="submit">Submit</button>
+  </form>
+{% endif %}
+</body>
+</html>
