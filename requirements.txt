@@ -1,0 +1,6 @@
+<<<<<<< HEAD:app/requirements.txt
+Flask==2.3.3
+gunicorn==20.1.0
+=======
+flask===3.0.0
+>>>>>>> 9d00b70 (update app):requirements.txt

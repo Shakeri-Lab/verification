@@ -5,8 +5,13 @@ import os
 app = Flask(__name__)
 app.secret_key = 'random_secret_key'  # Replace with something secure
 
+<<<<<<< HEAD:app/app.py
 # Load the original diagnoses, group mapping
 with open('diagnoses.json', 'r') as f:
+=======
+# Load the original diagnoses→group mapping
+with open('./reduced_diagnoses.json', 'r') as f:
+>>>>>>> 9d00b70 (update app):app.py
     diagnoses_data = json.load(f)
 
 # Group diagnoses by group name
@@ -173,4 +178,9 @@ def clear_data():
     return redirect(url_for('index'))
 
 
+<<<<<<< HEAD:app/app.py
 
+=======
+if __name__ == "__main__":
+   app.run(host='0.0.0.0', port=5000)
+>>>>>>> 9d00b70 (update app):app.py
