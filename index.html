@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Diagnosis Verification App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Diagnosis Verification</h1>
+
+    <div id="step1">
+      <input type="text" id="computing_id" placeholder="Enter your computing ID" />
+      <button onclick="startSession()">Start</button>
+    </div>
+
+    <div id="step2" style="display:none;">
+      <h2 id="group-name"></h2>
+      <ul id="diagnosis-list"></ul>
+      <label>Rename group (optional):</label>
+      <input type="text" id="new-group-name" />
+      <br />
+      <button onclick="submitVerification('yes')">Yes</button>
+      <button onclick="submitVerification('no')">No</button>
+    </div>
+
+    <div id="step3" style="display:none;">
+      <h2>You're done! ✅</h2>
+      <pre id="verified-output"></pre>
+      <button onclick="restart()">Restart</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
