@@ -10,8 +10,12 @@ async function startSession() {
     body: new URLSearchParams({ computing_id: id })
   });
 
-  loadNextGroup();
+  // Wait a moment, then load the next group
+  setTimeout(() => {
+    loadNextGroup();
+  }, 500);
 }
+
 
 async function loadNextGroup() {
   const res = await fetch(`${apiUrl}/`, {
