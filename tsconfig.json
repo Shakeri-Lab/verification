@@ -19,7 +19,7 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-    // You might also have "types": ["vite/client"] here or it might be inferred
+    "types": ["vite/client", "react", "react-dom"]
   },
   "include": ["src"], // Make sure "src/App.tsx" is covered by this
   "references": [{ "path": "./tsconfig.node.json" }]
