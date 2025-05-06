@@ -21,6 +21,12 @@ interface Group {
   collapsed?: boolean;
 }
 
+// Type for the data structure expected from diagnoses.json
+interface DiagnosesData {
+  [groupId: string]: [string[], string[]]; // [codes, names]
+}
+
+
 const DiagnosisGroupingApp = () => {
   const [undoStack, setUndoStack] = useState<Group[][]>([]);
   const [newGroupName, setNewGroupName] = useState('');
@@ -36,18 +42,16 @@ const DiagnosisGroupingApp = () => {
 
   const API_BASE_URL = 'https://your-api-url'; // Replace with your actual API URL
 
-  // Function to sort groups alphabetically by name
   const sortGroupsAlphabetically = (arr: Group[]): Group[] => {
     return [...arr].sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  // Function to upload grouped data
   const uploadGroupedData = async (dataToSave: Group[]) => {
     if (!computingId.trim()) {
       console.warn('Computing ID is empty, skipping S3 upload.');
       return;
     }
-    if (!API_BASE_URL.startsWith('https')) {
+    if (!API_BASE_URL.startsWith('https')) { // Check if it's the placeholder
         console.warn('API_BASE_URL is a placeholder, skipping S3 upload.');
         localStorage.setItem(`${computingId}_grouped_diagnoses_fallback`, JSON.stringify(dataToSave));
         console.log('Data saved to localStorage as fallback.');
@@ -76,20 +80,17 @@ const DiagnosisGroupingApp = () => {
     }
   };
 
-  // Debounced upload function
   const debouncedUpload = useRef(debounce((data: Group[]) => uploadGroupedData(data), 1000)).current;
 
-  // Effect to load initial data
   useEffect(() => {
     const lastId = localStorage.getItem('lastComputingId');
     if (lastId) setComputingId(lastId);
     if (!startConfirmed || !computingId.trim()) return;
 
-    // Function to fetch confirmed groups
     const fetchGroupsFromS3 = async () => {
       setLoading(true);
       let loadedGroups: Group[] = [];
-      if (!API_BASE_URL.startsWith('https')) {
+      if (!API_BASE_URL.startsWith('https')) { // Check if it's the placeholder
         console.warn('API_BASE_URL is a placeholder. Attempting to load from localStorage only for confirmed groups.');
         const saved = localStorage.getItem(`${computingId}_grouped_diagnoses`) || localStorage.getItem(`${computingId}_grouped_diagnoses_fallback`);
         if (saved) {
@@ -97,12 +98,11 @@ const DiagnosisGroupingApp = () => {
         }
       } else {
         try {
-          // Fetching presigned URL for getting the object
           const presignedUrlResponse = await fetch(`${API_BASE_URL}/get-presigned-url`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: `${computingId}_grouped_diagnoses.json`, action: 'getObject' }) // Assuming backend handles 'action'
-           });
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ filename: `${computingId}_grouped_diagnoses.json`, action: 'getObject' })
+          });
           if (!presignedUrlResponse.ok) throw new Error(`Presigned URL fetch failed: ${presignedUrlResponse.statusText}`);
           const { url: presignedS3Url } = await presignedUrlResponse.json();
           if (!presignedS3Url) throw new Error('Presigned URL not returned.');
@@ -113,26 +113,25 @@ const DiagnosisGroupingApp = () => {
         } catch (s3Error) {
           console.warn('S3 fetch for confirmed groups failed, trying localStorage:', s3Error);
           const saved = localStorage.getItem(`${computingId}_grouped_diagnoses`) || localStorage.getItem(`${computingId}_grouped_diagnoses_fallback`);
-          if (saved) try { loadedGroups = JSON.parse(saved); } catch (e) { /* ignore parse error on fallback */ }
+          if (saved) try { loadedGroups = JSON.parse(saved); } catch (e) { /* ignore */ }
         }
       }
-      setGroups(sortGroupsAlphabetically(loadedGroups)); // Sort loaded groups
+      setGroups(sortGroupsAlphabetically(loadedGroups));
       setLoading(false);
     };
 
-    // Function to fetch suggested groups
     const fetchSuggestedGroups = async () => {
       setLoading(true);
       try {
-        const res = await fetch('/verification/diagnoses.json'); // Path to your diagnoses data
+        const res = await fetch('/verification/diagnoses.json');
         if (!res.ok) {
             const errorText = await res.text();
             throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}, path: /verification/diagnoses.json`);
         }
-        const data = await res.json();
-        const allGroups: Group[] = Object.entries(data).map(([groupId, value], index) => {
-          const [codes, names] = value as [string[], string[]];
-          const diagnoses: Diagnosis[] = names.map((name, i) => ({
+        const data: DiagnosesData = await res.json(); // Use the DiagnosesData type
+        const allGroups: Group[] = Object.entries(data).map(([groupId, value]: [string, [string[], string[]]], index: number) => {
+          const [codes, names] = value; // value is now correctly typed
+          const diagnoses: Diagnosis[] = names.map((name: string, i: number) => ({ // Add types for map params
             id: codes[i] ? codes[i].toString() : `unknown-id-${groupId}-${i}-${Date.now()}`,
             name, description: ''
           }));
@@ -154,48 +153,41 @@ const DiagnosisGroupingApp = () => {
     fetchSuggestedGroups();
   }, [startConfirmed, computingId]);
 
-  // Effect to update the current suggested group index
   useEffect(() => {
     if (!startConfirmed) return;
     if (suggestedGroups.length === 0) {
       setCurrentSuggestedIndex(0); return;
     }
-    const nextIncompleteIndex = suggestedGroups.findIndex(sg => sg.diagnoses.length > 0);
+    const nextIncompleteIndex = suggestedGroups.findIndex((sg: Group) => sg.diagnoses.length > 0); // Add type for sg
     setCurrentSuggestedIndex(nextIncompleteIndex !== -1 ? nextIncompleteIndex : suggestedGroups.length);
   }, [suggestedGroups, startConfirmed]);
 
-  // Handler for starting drag operation
   const handleDragStart = (diagnosis: Diagnosis) => setDraggedDiagnosis(diagnosis);
 
-  // Recursive function to process dropping a diagnosis into groups/subgroups
   const processDropInGroups = (currentGroups: Group[], targetGroupId: string, diagnosisToDrop: Diagnosis): Group[] => {
-    return currentGroups.map(group => {
-      let diagnosesInGroup = group.diagnoses.filter(d => d.id !== diagnosisToDrop.id);
+    return currentGroups.map((group: Group) => { // Add type for group
+      let diagnosesInGroup = group.diagnoses.filter((d: Diagnosis) => d.id !== diagnosisToDrop.id); // Add type for d
       let subgroupsInGroup = group.subgroups ? processDropInGroups(group.subgroups, targetGroupId, diagnosisToDrop) : [];
-      if (group.id === targetGroupId && !diagnosesInGroup.find(d => d.id === diagnosisToDrop.id)) {
+      if (group.id === targetGroupId && !diagnosesInGroup.find((d: Diagnosis) => d.id === diagnosisToDrop.id)) { // Add type for d
         diagnosesInGroup = [...diagnosesInGroup, diagnosisToDrop];
       }
       return { ...group, diagnoses: diagnosesInGroup, subgroups: subgroupsInGroup };
     });
   };
 
-  // Handler for dropping a diagnosis
   const handleDrop = (targetGroupId: string) => {
     if (!draggedDiagnosis) return;
     setUndoStack(prev => [...prev.slice(-9), groups]);
     const updatedConfirmedGroups = processDropInGroups(groups, targetGroupId, draggedDiagnosis);
-    const updatedSuggestedGroups = suggestedGroups.map(sg => ({
-      ...sg, diagnoses: sg.diagnoses.filter(d => d.id !== draggedDiagnosis.id)
+    const updatedSuggestedGroups = suggestedGroups.map((sg: Group) => ({ // Add type for sg
+      ...sg, diagnoses: sg.diagnoses.filter((d: Diagnosis) => d.id !== draggedDiagnosis.id) // Add type for d
     }));
-    // The order of confirmed groups is maintained by sortGroupsAlphabetically on add/load,
-    // processDropInGroups only modifies content, not the order of top-level groups.
     setGroups(updatedConfirmedGroups);
     setSuggestedGroups(updatedSuggestedGroups);
     debouncedUpload(updatedConfirmedGroups);
     setDraggedDiagnosis(null);
   };
 
-  // Function to add a new subgroup
   const addSubgroup = (parentGroupId: string) => {
     const name = prompt('Enter subgroup name:');
     if (!name || !name.trim()) return;
@@ -203,20 +195,19 @@ const DiagnosisGroupingApp = () => {
       id: crypto.randomUUID(), name: name.trim(), diagnoses: [], subgroups: [], collapsed: false,
     };
     const addSubgroupRecursive = (currentGroups: Group[]): Group[] => {
-      return currentGroups.map(g => {
+      return currentGroups.map((g: Group) => { // Add type for g
         if (g.id === parentGroupId) return { ...g, subgroups: [...(g.subgroups || []), newSubgroup] };
         if (g.subgroups) return { ...g, subgroups: addSubgroupRecursive(g.subgroups) };
         return g;
       });
     };
     const updatedGroups = addSubgroupRecursive(groups);
-    setGroups(updatedGroups); // Order of top-level groups is not affected here.
+    setGroups(updatedGroups);
     debouncedUpload(updatedGroups);
   };
 
-  // Function to toggle group collapse state
   const toggleGroupCollapse = (groupId: string) => {
-    const toggleRecursive = (currentGroups: Group[]): Group[] => currentGroups.map(g => {
+    const toggleRecursive = (currentGroups: Group[]): Group[] => currentGroups.map((g: Group) => { // Add type for g
       if (g.id === groupId) return { ...g, collapsed: !g.collapsed };
       if (g.subgroups) return { ...g, subgroups: toggleRecursive(g.subgroups) };
       return g;
@@ -224,11 +215,10 @@ const DiagnosisGroupingApp = () => {
     setGroups(toggleRecursive(groups));
   };
 
-  // Handler for reordering subgroups
   const handleReorderSubgroups = (parentGroupId: string, reorderedSubgroups: Group[]) => {
     setUndoStack(prev => [...prev.slice(-9), groups]);
     const updateSubgroupsOrderRecursive = (currentGroups: Group[], targetParentId: string, newOrder: Group[]): Group[] => {
-      return currentGroups.map(g => {
+      return currentGroups.map((g: Group) => { // Add type for g
         if (g.id === targetParentId) return { ...g, subgroups: newOrder as Group[] };
         if (g.subgroups && g.subgroups.length > 0) {
           return { ...g, subgroups: updateSubgroupsOrderRecursive(g.subgroups, targetParentId, newOrder) };
@@ -237,12 +227,11 @@ const DiagnosisGroupingApp = () => {
       });
     };
     const updatedGroups = updateSubgroupsOrderRecursive(groups, parentGroupId, reorderedSubgroups);
-    setGroups(updatedGroups); // Order of top-level groups is not affected here.
+    setGroups(updatedGroups);
     debouncedUpload(updatedGroups);
   };
 
-  // Recursive function to render a group and its subgroups
-  const renderGroup = (group: Group, indentLevel = 0): JSX.Element => (
+  const renderGroup = (group: Group, indentLevel = 0): JSX.Element => ( // JSX.Element should now be found
     <motion.div
       key={group.id}
       layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -250,7 +239,7 @@ const DiagnosisGroupingApp = () => {
       onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleDrop(group.id); }}
       className={cn(
         "p-3 md:p-4 rounded-md space-y-2 shadow-md mb-3 bg-gray-800",
-        indentLevel > 0 && "border border-gray-600" // Border only for subgroups
+        indentLevel > 0 && "border border-gray-600"
       )}
       style={{ marginLeft: `${indentLevel * 20}px` }}
     >
@@ -267,7 +256,7 @@ const DiagnosisGroupingApp = () => {
       </div>
       {!group.collapsed && (
         <div className="pl-2 md:pl-4 pt-2 space-y-2">
-          {group.diagnoses.map(d => (
+          {group.diagnoses.map((d: Diagnosis) => ( // Add type for d
             <motion.div key={d.id} draggable onDragStart={() => handleDragStart(d)}
               className="bg-gray-700 p-2 rounded-md cursor-grab hover:bg-gray-600 transition-colors"
               layoutId={`diagnosis-${d.id}`}
@@ -280,7 +269,7 @@ const DiagnosisGroupingApp = () => {
               onReorder={(newOrder) => handleReorderSubgroups(group.id, newOrder as Group[])}
               className="space-y-2 pt-2"
             >
-              {group.subgroups.map(sub => (
+              {group.subgroups.map((sub: Group) => ( // Add type for sub
                 <Reorder.Item key={sub.id} value={sub} className="cursor-grab rounded-md">
                   {renderGroup(sub, indentLevel + 1)}
                 </Reorder.Item>
@@ -298,7 +287,6 @@ const DiagnosisGroupingApp = () => {
     </motion.div>
   );
 
-  // Initial screen for computing ID
   if (!startConfirmed) {
     return (
       <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center justify-center p-4 space-y-6">
@@ -322,7 +310,6 @@ const DiagnosisGroupingApp = () => {
     );
   }
 
-  // Main application UI
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-6 flex flex-col">
       <header className="mb-6 flex flex-wrap justify-between items-center gap-4">
@@ -338,7 +325,6 @@ const DiagnosisGroupingApp = () => {
         </div>
       </header>
 
-      {/* Loading Spinner - Restored */}
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500"></div>
@@ -366,23 +352,21 @@ const DiagnosisGroupingApp = () => {
                       const trimmedName = inputName.trim();
                       setUndoStack(prev => [...prev.slice(-9), groups]);
 
-                      const existingGroup = groups.find(g => g.name.toLowerCase() === trimmedName.toLowerCase());
+                      const existingGroup = groups.find((g: Group) => g.name.toLowerCase() === trimmedName.toLowerCase()); // Add type for g
 
                       if (existingGroup) {
-                        // Merge with existing group
-                        const updatedGroups = groups.map(g => {
+                        const updatedGroups = groups.map((g: Group) => { // Add type for g
                           if (g.id === existingGroup.id) {
                             const diagnosesToAdd = currentSuggestion.diagnoses.filter(
-                              sd => !g.diagnoses.some(d => d.id === sd.id) // Avoid duplicates
+                              (sd: Diagnosis) => !g.diagnoses.some((d: Diagnosis) => d.id === sd.id) // Add types
                             );
                             return { ...g, diagnoses: [...g.diagnoses, ...diagnosesToAdd] };
                           }
                           return g;
                         });
-                        setGroups(updatedGroups); // Group order doesn't change, no need to re-sort
+                        setGroups(updatedGroups);
                         debouncedUpload(updatedGroups);
                       } else {
-                        // Create new group
                         const newGroup: Group = {
                           id: crypto.randomUUID(), name: trimmedName,
                           diagnoses: [...currentSuggestion.diagnoses],
@@ -392,8 +376,7 @@ const DiagnosisGroupingApp = () => {
                         setGroups(updatedGroups);
                         debouncedUpload(updatedGroups);
                       }
-                      // Mark current suggestion's diagnoses as moved
-                      const updatedSuggested = suggestedGroups.map((sg, idx) =>
+                      const updatedSuggested = suggestedGroups.map((sg: Group, idx: number) => // Add types
                         idx === currentSuggestedIndex ? { ...sg, diagnoses: [] } : sg
                       );
                       setSuggestedGroups(updatedSuggested);
@@ -404,9 +387,8 @@ const DiagnosisGroupingApp = () => {
                 </div>
                  <p className="text-xs text-gray-400 mt-2"> Or, drag them individually to your groups on the right. </p>
               </div>
-              {/* Rest of suggested diagnoses rendering - Restored */}
               <div className="space-y-2">
-                {(suggestedGroups[currentSuggestedIndex]?.diagnoses || []).map((d) => (
+                {(suggestedGroups[currentSuggestedIndex]?.diagnoses || []).map((d: Diagnosis) => ( // Add type for d
                   <motion.div
                     key={d.id} draggable onDragStart={() => handleDragStart(d)}
                     className="bg-gray-700 rounded-md p-3 cursor-grab hover:bg-gray-600 transition-colors"
@@ -421,7 +403,6 @@ const DiagnosisGroupingApp = () => {
               }
             </>
           ) : (
-            // No suggestions message - Restored
             <p className="text-gray-400 p-3">
                 {loading && "Loading suggestions..."}
                 {!loading && suggestedGroups.length === 0 && "No suggestions loaded or an error occurred."}
@@ -433,7 +414,7 @@ const DiagnosisGroupingApp = () => {
         <section className="w-2/3 lg:w-3/4 bg-gray-850 p-4 rounded-lg shadow-lg overflow-y-auto relative">
           <h2 className="text-xl font-semibold text-white mb-3 sticky top-0 bg-gray-850 py-2 z-10">Your Confirmed Groups</h2>
           <AnimatePresence>
-            {groups.map(group => renderGroup(group, 0))}
+            {groups.map((group: Group) => renderGroup(group, 0))} {/* Add type for group */}
           </AnimatePresence>
           <div className="mt-6 sticky bottom-0 bg-gray-850 py-3">
             {showAddGroupInput ? (
@@ -446,7 +427,7 @@ const DiagnosisGroupingApp = () => {
                     <Button onClick={() => {
                         const trimmedNewGroupName = newGroupName.trim();
                         if (!trimmedNewGroupName) return;
-                        const groupNameExists = groups.some(g => g.name.toLowerCase() === trimmedNewGroupName.toLowerCase());
+                        const groupNameExists = groups.some((g: Group) => g.name.toLowerCase() === trimmedNewGroupName.toLowerCase()); // Add type for g
                         if (groupNameExists) {
                           alert("A group with this name already exists. Please choose a different name.");
                           return;
@@ -462,7 +443,6 @@ const DiagnosisGroupingApp = () => {
                 </div>
               </div>
             ) : (
-              // Create New Group button - Restored
               <Button onClick={() => setShowAddGroupInput(true)} className={cn("w-full sm:w-auto bg-green-600 hover:bg-green-700")}>
                 <Plus className="w-4 h-4 mr-2" /> Create New Group
               </Button>
