@@ -40,7 +40,7 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
   const [startConfirmed, setStartConfirmed] = useState(false);
   const [draggedDiagnosis, setDraggedDiagnosis] = useState<Diagnosis | null>(null);
 
-  const API_BASE_URL = 'https://your-api-url'; // Replace with your actual API URL
+  const API_BASE_URL = 'https://2dhwe1ghfi.execute-api.us-east-1.amazonaws.com
 
   const sortGroupsAlphabetically = (arr: Group[]): Group[] => {
     return [...arr].sort((a, b) => a.name.localeCompare(b.name));
