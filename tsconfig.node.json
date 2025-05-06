@@ -1,24 +1,18 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "ES2022",
-    "lib": ["ES2023"],
-    "module": "ESNext",
+    "composite": true, // REQUIRED for project references
     "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "module": "ESNext",
+    "moduleResolution": "bundler", // Or "node"
+    "allowSyntheticDefaultImports": true,
+    "strict": true, // Recommended
+    "noEmit": false, // MUST NOT be true if "composite" is true. Set to false or remove.
+                     // Alternatively, if you only want .d.ts files:
+                     // "declaration": true,
+                     // "emitDeclarationOnly": true,
+    "target": "ESNext", // Ensure it supports modern Node features if needed
+    // Add "types": ["node"] if you need explicit Node.js types for globals like __dirname
+    "types": ["node"]
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts"] // Should only include Node-specific TS files
 }
