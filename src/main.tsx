@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css'; // <--- important to include Tailwind styles
+import App from './App'; // Corrected: Removed .tsx extension
+import './index.css'; // Assuming you have a global CSS file
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );
