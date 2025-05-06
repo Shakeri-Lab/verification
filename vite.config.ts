@@ -13,5 +13,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     }
   },
-  base: '/verification' // or '' for local dev
 });
