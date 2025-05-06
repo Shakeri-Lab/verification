@@ -231,22 +231,24 @@ const DiagnosisGroupingApp = () => {
     debouncedUpload(updatedGroups);
   };
 
-  const renderGroup = (group: Group, indentLevel = 0): JSX.Element => ( // JSX.Element should now be found
+  const renderGroup = (group: Group, indent = 0) => (
     <motion.div
       key={group.id}
-      layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleDrop(group.id); }}
-      className={cn(
-        "p-3 md:p-4 rounded-md space-y-2 shadow-md mb-3 bg-gray-800",
-        indentLevel > 0 && "border border-gray-600"
-      )}
-      style={{ marginLeft: `${indentLevel * 20}px` }}
+      layout
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+      onDrop={e => { e.preventDefault(); handleDrop(group.id); }}
+      className={cn('p-3 md:p-4 rounded-md space-y-2 shadow-md mb-3 bg-gray-800', indent && 'border border-gray-600')}
+      style={{ marginLeft: indent * 20 }}
     >
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button onClick={(e) => { e.stopPropagation(); toggleGroupCollapse(group.id); }}
+          <button
             className="p-1 hover:bg-gray-700 rounded text-gray-400"
+            onClick={e => { e.stopPropagation(); toggleCollapse(group.id); }}
             aria-label={group.collapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
           >
             {group.collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
