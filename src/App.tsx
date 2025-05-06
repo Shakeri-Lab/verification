@@ -3,6 +3,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import debounce from 'lodash/debounce';
 
+// Assuming these paths are correct for your project structure
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -26,8 +27,7 @@ interface DiagnosesData {
   [groupId: string]: [string[], string[]]; // [codes, names]
 }
 
-
-const DiagnosisGroupingApp = () => {
+const DiagnosisGroupingApp = (): React.JSX.Element => {
   const [undoStack, setUndoStack] = useState<Group[][]>([]);
   const [newGroupName, setNewGroupName] = useState('');
   const [showAddGroupInput, setShowAddGroupInput] = useState(false);
@@ -90,7 +90,7 @@ const DiagnosisGroupingApp = () => {
     const fetchGroupsFromS3 = async () => {
       setLoading(true);
       let loadedGroups: Group[] = [];
-      if (!API_BASE_URL.startsWith('https')) { // Check if it's the placeholder
+      if (!API_BASE_URL.startsWith('https')) {
         console.warn('API_BASE_URL is a placeholder. Attempting to load from localStorage only for confirmed groups.');
         const saved = localStorage.getItem(`${computingId}_grouped_diagnoses`) || localStorage.getItem(`${computingId}_grouped_diagnoses_fallback`);
         if (saved) {
@@ -128,10 +128,10 @@ const DiagnosisGroupingApp = () => {
             const errorText = await res.text();
             throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}, path: /verification/diagnoses.json`);
         }
-        const data: DiagnosesData = await res.json(); // Use the DiagnosesData type
+        const data: DiagnosesData = await res.json();
         const allGroups: Group[] = Object.entries(data).map(([groupId, value]: [string, [string[], string[]]], index: number) => {
-          const [codes, names] = value; // value is now correctly typed
-          const diagnoses: Diagnosis[] = names.map((name: string, i: number) => ({ // Add types for map params
+          const [codes, names] = value;
+          const diagnoses: Diagnosis[] = names.map((name: string, i: number) => ({
             id: codes[i] ? codes[i].toString() : `unknown-id-${groupId}-${i}-${Date.now()}`,
             name, description: ''
           }));
@@ -158,17 +158,17 @@ const DiagnosisGroupingApp = () => {
     if (suggestedGroups.length === 0) {
       setCurrentSuggestedIndex(0); return;
     }
-    const nextIncompleteIndex = suggestedGroups.findIndex((sg: Group) => sg.diagnoses.length > 0); // Add type for sg
+    const nextIncompleteIndex = suggestedGroups.findIndex((sg: Group) => sg.diagnoses.length > 0);
     setCurrentSuggestedIndex(nextIncompleteIndex !== -1 ? nextIncompleteIndex : suggestedGroups.length);
   }, [suggestedGroups, startConfirmed]);
 
   const handleDragStart = (diagnosis: Diagnosis) => setDraggedDiagnosis(diagnosis);
 
   const processDropInGroups = (currentGroups: Group[], targetGroupId: string, diagnosisToDrop: Diagnosis): Group[] => {
-    return currentGroups.map((group: Group) => { // Add type for group
-      let diagnosesInGroup = group.diagnoses.filter((d: Diagnosis) => d.id !== diagnosisToDrop.id); // Add type for d
+    return currentGroups.map((group: Group) => {
+      let diagnosesInGroup = group.diagnoses.filter((d: Diagnosis) => d.id !== diagnosisToDrop.id);
       let subgroupsInGroup = group.subgroups ? processDropInGroups(group.subgroups, targetGroupId, diagnosisToDrop) : [];
-      if (group.id === targetGroupId && !diagnosesInGroup.find((d: Diagnosis) => d.id === diagnosisToDrop.id)) { // Add type for d
+      if (group.id === targetGroupId && !diagnosesInGroup.find((d: Diagnosis) => d.id === diagnosisToDrop.id)) {
         diagnosesInGroup = [...diagnosesInGroup, diagnosisToDrop];
       }
       return { ...group, diagnoses: diagnosesInGroup, subgroups: subgroupsInGroup };
@@ -179,8 +179,8 @@ const DiagnosisGroupingApp = () => {
     if (!draggedDiagnosis) return;
     setUndoStack(prev => [...prev.slice(-9), groups]);
     const updatedConfirmedGroups = processDropInGroups(groups, targetGroupId, draggedDiagnosis);
-    const updatedSuggestedGroups = suggestedGroups.map((sg: Group) => ({ // Add type for sg
-      ...sg, diagnoses: sg.diagnoses.filter((d: Diagnosis) => d.id !== draggedDiagnosis.id) // Add type for d
+    const updatedSuggestedGroups = suggestedGroups.map((sg: Group) => ({
+      ...sg, diagnoses: sg.diagnoses.filter((d: Diagnosis) => d.id !== draggedDiagnosis.id)
     }));
     setGroups(updatedConfirmedGroups);
     setSuggestedGroups(updatedSuggestedGroups);
@@ -195,7 +195,7 @@ const DiagnosisGroupingApp = () => {
       id: crypto.randomUUID(), name: name.trim(), diagnoses: [], subgroups: [], collapsed: false,
     };
     const addSubgroupRecursive = (currentGroups: Group[]): Group[] => {
-      return currentGroups.map((g: Group) => { // Add type for g
+      return currentGroups.map((g: Group) => {
         if (g.id === parentGroupId) return { ...g, subgroups: [...(g.subgroups || []), newSubgroup] };
         if (g.subgroups) return { ...g, subgroups: addSubgroupRecursive(g.subgroups) };
         return g;
@@ -207,7 +207,7 @@ const DiagnosisGroupingApp = () => {
   };
 
   const toggleGroupCollapse = (groupId: string) => {
-    const toggleRecursive = (currentGroups: Group[]): Group[] => currentGroups.map((g: Group) => { // Add type for g
+    const toggleRecursive = (currentGroups: Group[]): Group[] => currentGroups.map((g: Group) => {
       if (g.id === groupId) return { ...g, collapsed: !g.collapsed };
       if (g.subgroups) return { ...g, subgroups: toggleRecursive(g.subgroups) };
       return g;
@@ -218,7 +218,7 @@ const DiagnosisGroupingApp = () => {
   const handleReorderSubgroups = (parentGroupId: string, reorderedSubgroups: Group[]) => {
     setUndoStack(prev => [...prev.slice(-9), groups]);
     const updateSubgroupsOrderRecursive = (currentGroups: Group[], targetParentId: string, newOrder: Group[]): Group[] => {
-      return currentGroups.map((g: Group) => { // Add type for g
+      return currentGroups.map((g: Group) => {
         if (g.id === targetParentId) return { ...g, subgroups: newOrder as Group[] };
         if (g.subgroups && g.subgroups.length > 0) {
           return { ...g, subgroups: updateSubgroupsOrderRecursive(g.subgroups, targetParentId, newOrder) };
@@ -231,7 +231,7 @@ const DiagnosisGroupingApp = () => {
     debouncedUpload(updatedGroups);
   };
 
-  const renderGroup = (group: Group, indent = 0) => (
+  const renderGroup = (group: Group, indentLevel = 0): React.JSX.Element => (
     <motion.div
       key={group.id}
       layout
@@ -239,16 +239,18 @@ const DiagnosisGroupingApp = () => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-      onDrop={e => { e.preventDefault(); handleDrop(group.id); }}
-      className={cn('p-3 md:p-4 rounded-md space-y-2 shadow-md mb-3 bg-gray-800', indent && 'border border-gray-600')}
-      style={{ marginLeft: indent * 20 }}
+      onDrop={e => { e.preventDefault(); e.stopPropagation(); handleDrop(group.id); }}
+      className={cn(
+        'p-3 md:p-4 rounded-md space-y-2 shadow-md mb-3 bg-gray-800',
+        indentLevel > 0 && 'border border-gray-600'
+      )}
+      style={{ marginLeft: `${indentLevel * 20}px` }}
     >
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             className="p-1 hover:bg-gray-700 rounded text-gray-400"
-            onClick={e => { e.stopPropagation(); toggleCollapse(group.id); }}
+            onClick={e => { e.stopPropagation(); toggleGroupCollapse(group.id); }}
             aria-label={group.collapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
           >
             {group.collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
@@ -258,7 +260,7 @@ const DiagnosisGroupingApp = () => {
       </div>
       {!group.collapsed && (
         <div className="pl-2 md:pl-4 pt-2 space-y-2">
-          {group.diagnoses.map((d: Diagnosis) => ( // Add type for d
+          {group.diagnoses.map((d: Diagnosis) => (
             <motion.div key={d.id} draggable onDragStart={() => handleDragStart(d)}
               className="bg-gray-700 p-2 rounded-md cursor-grab hover:bg-gray-600 transition-colors"
               layoutId={`diagnosis-${d.id}`}
@@ -271,7 +273,7 @@ const DiagnosisGroupingApp = () => {
               onReorder={(newOrder) => handleReorderSubgroups(group.id, newOrder as Group[])}
               className="space-y-2 pt-2"
             >
-              {group.subgroups.map((sub: Group) => ( // Add type for sub
+              {group.subgroups.map((sub: Group) => (
                 <Reorder.Item key={sub.id} value={sub} className="cursor-grab rounded-md">
                   {renderGroup(sub, indentLevel + 1)}
                 </Reorder.Item>
@@ -354,13 +356,13 @@ const DiagnosisGroupingApp = () => {
                       const trimmedName = inputName.trim();
                       setUndoStack(prev => [...prev.slice(-9), groups]);
 
-                      const existingGroup = groups.find((g: Group) => g.name.toLowerCase() === trimmedName.toLowerCase()); // Add type for g
+                      const existingGroup = groups.find((g: Group) => g.name.toLowerCase() === trimmedName.toLowerCase());
 
                       if (existingGroup) {
-                        const updatedGroups = groups.map((g: Group) => { // Add type for g
+                        const updatedGroups = groups.map((g: Group) => {
                           if (g.id === existingGroup.id) {
                             const diagnosesToAdd = currentSuggestion.diagnoses.filter(
-                              (sd: Diagnosis) => !g.diagnoses.some((d: Diagnosis) => d.id === sd.id) // Add types
+                              (sd: Diagnosis) => !g.diagnoses.some((d: Diagnosis) => d.id === sd.id)
                             );
                             return { ...g, diagnoses: [...g.diagnoses, ...diagnosesToAdd] };
                           }
@@ -378,7 +380,7 @@ const DiagnosisGroupingApp = () => {
                         setGroups(updatedGroups);
                         debouncedUpload(updatedGroups);
                       }
-                      const updatedSuggested = suggestedGroups.map((sg: Group, idx: number) => // Add types
+                      const updatedSuggested = suggestedGroups.map((sg: Group, idx: number) =>
                         idx === currentSuggestedIndex ? { ...sg, diagnoses: [] } : sg
                       );
                       setSuggestedGroups(updatedSuggested);
@@ -390,7 +392,7 @@ const DiagnosisGroupingApp = () => {
                  <p className="text-xs text-gray-400 mt-2"> Or, drag them individually to your groups on the right. </p>
               </div>
               <div className="space-y-2">
-                {(suggestedGroups[currentSuggestedIndex]?.diagnoses || []).map((d: Diagnosis) => ( // Add type for d
+                {(suggestedGroups[currentSuggestedIndex]?.diagnoses || []).map((d: Diagnosis) => (
                   <motion.div
                     key={d.id} draggable onDragStart={() => handleDragStart(d)}
                     className="bg-gray-700 rounded-md p-3 cursor-grab hover:bg-gray-600 transition-colors"
@@ -416,7 +418,7 @@ const DiagnosisGroupingApp = () => {
         <section className="w-2/3 lg:w-3/4 bg-gray-850 p-4 rounded-lg shadow-lg overflow-y-auto relative">
           <h2 className="text-xl font-semibold text-white mb-3 sticky top-0 bg-gray-850 py-2 z-10">Your Confirmed Groups</h2>
           <AnimatePresence>
-            {groups.map((group: Group) => renderGroup(group, 0))} {/* Add type for group */}
+            {groups.map((group: Group) => renderGroup(group, 0))}
           </AnimatePresence>
           <div className="mt-6 sticky bottom-0 bg-gray-850 py-3">
             {showAddGroupInput ? (
@@ -429,7 +431,7 @@ const DiagnosisGroupingApp = () => {
                     <Button onClick={() => {
                         const trimmedNewGroupName = newGroupName.trim();
                         if (!trimmedNewGroupName) return;
-                        const groupNameExists = groups.some((g: Group) => g.name.toLowerCase() === trimmedNewGroupName.toLowerCase()); // Add type for g
+                        const groupNameExists = groups.some((g: Group) => g.name.toLowerCase() === trimmedNewGroupName.toLowerCase());
                         if (groupNameExists) {
                           alert("A group with this name already exists. Please choose a different name.");
                           return;
