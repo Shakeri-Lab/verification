@@ -5,14 +5,16 @@
     "module": "ESNext",
     "moduleResolution": "bundler", // Or "node"
     "allowSyntheticDefaultImports": true,
-    "strict": true, // Recommended
-    "noEmit": false, // MUST NOT be true if "composite" is true. Set to false or remove.
-                     // Alternatively, if you only want .d.ts files:
-                     // "declaration": true,
-                     // "emitDeclarationOnly": true,
-    "target": "ESNext", // Ensure it supports modern Node features if needed
-    // Add "types": ["node"] if you need explicit Node.js types for globals like __dirname
-    "types": ["node"]
+    "strict": true,
+    "target": "ESNext",
+    // "noEmit": false, // Cannot be true if "composite" is true.
+                       // If you only want .d.ts files from this, use:
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "types": ["node", "vite/client"] // Include Node.js types and Vite client types
   },
-  "include": ["vite.config.ts"] // Should only include Node-specific TS files
+  "include": [
+    "vite.config.ts" // Only include Node-specific TS files here
+    // Add other Node-specific config files if you have them
+  ]
 }
