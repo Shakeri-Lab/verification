@@ -1,26 +1,26 @@
 {
   "compilerOptions": {
-    "target": "ESNext", // Target modern JavaScript
+    "target": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "DOM.Iterable", "ESNext"], // Crucial: Include ESNext for modern features and DOM
+    "lib": ["DOM", "DOM.Iterable", "ESNext"], // Essential for Promise, Object.entries, JSX.Element etc.
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true, // Enables all strict type-checking options
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
-    "moduleResolution": "bundler", // Recommended for Vite
+    "moduleResolution": "bundler", // Or "node" - "bundler" is good with Vite
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true, // Vite handles the emitting of JS files
-    "jsx": "react-jsx", // Essential for React 17+ JSX transform
-    "baseUrl": ".", // Important for path aliases
+    "noEmit": true,               // Vite handles emitting files
+    "jsx": "react-jsx",           // CRUCIAL for JSX support
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"] // Assuming your alias is for the src directory
-    },
-    // "types": ["vite/client"] // Often useful for Vite-specific client types, if not already in tsconfig.node.json or implicitly available
+      "@/*": ["./src/*"]
+    }
+    // You might also have "types": ["vite/client"] here or it might be inferred
   },
-  "include": ["src"], // Only include your app's source code here
-  "references": [{ "path": "./tsconfig.node.json" }] // For Vite config, etc.
+  "include": ["src"], // Make sure "src/App.tsx" is covered by this
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
