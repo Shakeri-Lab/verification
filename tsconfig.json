@@ -1,22 +1,26 @@
 {
   "compilerOptions": {
-    // ... (your existing options like target, lib, jsx, moduleResolution, etc.)
-    "jsx": "react-jsx", // This should already be correct from previous steps
-    "noEmit": true, // This is fine for the main tsconfig if Vite handles bundling
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "strict": true,
+    "target": "ESNext", // Target modern JavaScript
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"], // Crucial: Include ESNext for modern features and DOM
+    "allowJs": false,
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true, // Enables all strict type-checking options
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
     "module": "ESNext",
-    "moduleResolution": "bundler", // Or "node"
-    // Add path aliases here if not already present, matching vite.config.ts
-    "baseUrl": ".", // Needed for paths to work
+    "moduleResolution": "bundler", // Recommended for Vite
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true, // Vite handles the emitting of JS files
+    "jsx": "react-jsx", // Essential for React 17+ JSX transform
+    "baseUrl": ".", // Important for path aliases
     "paths": {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"] // Assuming your alias is for the src directory
+    },
+    // "types": ["vite/client"] // Often useful for Vite-specific client types, if not already in tsconfig.node.json or implicitly available
   },
-  "include": ["src"], // Main tsconfig should primarily include your app's source code
-  "references": [{ "path": "./tsconfig.node.json" }] // This reference should now work
+  "include": ["src"], // Only include your app's source code here
+  "references": [{ "path": "./tsconfig.node.json" }] // For Vite config, etc.
 }
