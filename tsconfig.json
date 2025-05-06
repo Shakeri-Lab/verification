@@ -1,17 +1,25 @@
 {
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "target": "ESNext",
+    "target": "ESNext", // Or "ES2020", "ES2021", etc.
     "useDefineForClassFields": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "strict": true,
-    "jsx": "react-jsx",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
-    "noImplicitAny": false
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": false, // Or true if you have mixed JS/TS files
+    "skipLibCheck": true,
+    "esModuleInterop": true, // Enables compatibility with CommonJS modules
+    "allowSyntheticDefaultImports": true, // Allows default imports from modules with no default export
+    "strict": true, // Enables all strict type-checking options
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext", // Specifies module code generation
+    "moduleResolution": "bundler", // Or "node" - "bundler" is often better with Vite
+    "resolveJsonModule": true, // Allows importing .json files
+    "isolatedModules": true, // Ensures each file can be safely transpiled without relying on other imports
+    "noEmit": true, // Vite handles transpilation, TypeScript is for type checking
+    "jsx": "react-jsx", // Crucial for React 17+ JSX transform
+    // "baseUrl": ".", // Optional: if you want to set a base directory for non-relative module imports
+    // "paths": {      // Optional: for path aliases like "@/*"
+    //   "@/*": ["./src/*"]
+    // }
   },
-  "include": ["src"]
+  "include": ["src", "vite.config.ts"], // Ensure this includes your source directory and Vite config
+  "references": [{ "path": "./tsconfig.node.json" }] // Common in Vite setups
 }
