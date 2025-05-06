@@ -18,7 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
     "types": ["vite/client", "react", "react-dom"]
   },
   "include": ["src"], // Make sure "src/App.tsx" is covered by this
