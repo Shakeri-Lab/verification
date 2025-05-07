@@ -1,9 +1,17 @@
+/* Corrected: Tailwind directives MUST come first */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Your other styles can come after */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
+  /* It's generally better to let Tailwind handle text/background colors via classes,
+     but these can serve as fallbacks if needed. */
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 
@@ -24,8 +32,12 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  /* Consider removing display:flex and place-items:center if they interfere
+     with your app's root layout, unless you specifically need the
+     entire app centered vertically and horizontally within the body.
+     Often, you'll control layout within your React components. */
+  /* display: flex; */
+  /* place-items: center; */
   min-width: 320px;
   min-height: 100vh;
 }
@@ -35,6 +47,10 @@ h1 {
   line-height: 1.1;
 }
 
+/* Consider removing these default button styles if you are primarily
+   using Tailwind classes or a component library like shadcn/ui for buttons,
+   as these global styles might conflict. */
+/*
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -53,6 +69,7 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+*/
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -62,10 +79,11 @@ button:focus-visible {
   a:hover {
     color: #747bff;
   }
+  /*
   button {
     background-color: #f9f9f9;
   }
+  */
 }
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+/* Tailwind directives were here, moved to top */
