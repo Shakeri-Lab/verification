@@ -162,7 +162,7 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
 
       setGroups(sortGroupsAlphabetically(loadedConfirmedGroups));
       setSuggestedGroups(filteredSuggestedGroups);
-      setLoading(false);
+      setLoading(false); // Loading is set to false AFTER all processing and state updates
     };
 
     if (startConfirmed && computingId.trim()) {
@@ -364,10 +364,10 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
       )}
 
       <main className="flex flex-row gap-4 md:gap-6 flex-grow" style={{ height: 'calc(100vh - 150px)' }}>
-        {/* Left Column: Suggested Groups - MODIFIED width to be consistently w-1/2 */}
         <section className="w-1/2 bg-gray-800 p-4 rounded-lg shadow-lg overflow-y-auto">
           <h2 className="text-xl font-semibold text-white mb-3 sticky top-0 bg-gray-800 py-2 z-10">Suggested Diagnoses</h2>
-          {suggestedGroups.length > 0 && currentSuggestedIndex < suggestedGroups.length && suggestedGroups[currentSuggestedIndex] ? (
+          {/* MODIFIED: Added '!loading' to the condition to prevent rendering suggestions while loading */}
+          {suggestedGroups.length > 0 && currentSuggestedIndex < suggestedGroups.length && suggestedGroups[currentSuggestedIndex] && !loading ? (
             <>
               <div className="mb-4 p-3 bg-gray-700 rounded-md text-white">
                 <p className="text-md font-medium mb-2">
@@ -436,14 +436,14 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
             </>
           ) : (
             <p className="text-gray-400 p-3">
-                {loading && "Loading suggestions..."}
-                {!loading && suggestedGroups.length === 0 && "No suggestions loaded or an error occurred."}
+                {/* MODIFIED: More specific loading message */}
+                {loading && "Loading and processing suggestions..."} 
+                {!loading && suggestedGroups.length === 0 && "No new suggestions available or an error occurred."}
                 {!loading && suggestedGroups.length > 0 && currentSuggestedIndex >= suggestedGroups.length && "All suggestions have been processed. You can continue to create groups manually."}
             </p>
           )}
         </section>
 
-        {/* Right Column: Confirmed Groups - MODIFIED width to be consistently w-1/2 */}
         <section className="w-1/2 bg-gray-850 p-4 rounded-lg shadow-lg overflow-y-auto relative">
           <h2 className="text-xl font-semibold text-white mb-3 sticky top-0 bg-gray-850 py-2 z-10">Your Confirmed Groups</h2>
           <AnimatePresence>
