@@ -1,6 +1,6 @@
 # How to Use the Diagnosis Grouping Tool
 
-**Goal:** To organize patient diagnoses into meaningful groups.
+**Goal:** This tool is designed to help clinicians organize and group patient diagnoses based on clinical similarity and causal relationships. The goal is to create meaningful clusters of diagnoses that reflect underlying conditions or disease progression pathways.
 
 ---
 
