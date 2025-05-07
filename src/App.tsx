@@ -61,14 +61,14 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
       const presignedUrlResponse = await fetch(`${API_BASE_URL}/get-presigned-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: `${computingId}_grouped_diagnoses.json`, action: 'putObject' }) // Specify action for clarity
+        body: JSON.stringify({ filename: `${computingId}_grouped_diagnoses.json`, action: 'putObject' })
       });
       if (!presignedUrlResponse.ok) throw new Error(`Failed to get presigned URL for upload: ${presignedUrlResponse.statusText}`);
       const { url: presignedS3Url } = await presignedUrlResponse.json();
       if (!presignedS3Url) throw new Error('Presigned URL for upload was not returned.');
       await fetch(presignedS3Url, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }, // S3 expects this if data is JSON
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSave),
       });
       console.log('Data successfully auto-saved to S3.');
@@ -82,7 +82,6 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
 
   const debouncedUpload = useRef(debounce((data: Group[]) => uploadGroupedData(data), 1000)).current;
 
-  // Effect to load initial data (computing ID, saved groups, suggested groups)
   useEffect(() => {
     const lastId = localStorage.getItem('lastComputingId');
     if (lastId) setComputingId(lastId);
@@ -91,9 +90,8 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
       if (!startConfirmed || !computingId.trim()) return;
       setLoading(true);
 
-      // --- Fetch Confirmed Groups (from S3/localStorage) ---
       let loadedConfirmedGroups: Group[] = [];
-      if (API_BASE_URL === 'https://your-api-url' || !API_BASE_URL.startsWith('https')) { // More explicit placeholder check
+      if (API_BASE_URL === 'https://your-api-url' || !API_BASE_URL.startsWith('https')) {
         console.warn('API_BASE_URL is a placeholder or invalid. Attempting to load from localStorage only for confirmed groups.');
         const saved = localStorage.getItem(`${computingId}_grouped_diagnoses`) || localStorage.getItem(`${computingId}_grouped_diagnoses_fallback`);
         if (saved) {
@@ -111,7 +109,7 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
           const s3DataResponse = await fetch(presignedS3Url);
           if (!s3DataResponse.ok) throw new Error(`S3 data fetch for confirmed groups failed: ${s3DataResponse.statusText}`);
           loadedConfirmedGroups = await s3DataResponse.json();
-          localStorage.setItem(`${computingId}_grouped_diagnoses`, JSON.stringify(loadedConfirmedGroups)); // Cache successful S3 load
+          localStorage.setItem(`${computingId}_grouped_diagnoses`, JSON.stringify(loadedConfirmedGroups));
         } catch (s3Error) {
           console.warn('S3 fetch for confirmed groups failed, trying localStorage:', s3Error);
           const saved = localStorage.getItem(`${computingId}_grouped_diagnoses`) || localStorage.getItem(`${computingId}_grouped_diagnoses_fallback`);
@@ -119,10 +117,9 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
         }
       }
 
-      // --- Fetch Raw Suggested Groups (from diagnoses.json) ---
       let rawSuggestedGroupsList: Group[] = [];
       try {
-        const res = await fetch('/verification/diagnoses.json'); // Path to your diagnoses data
+        const res = await fetch('/verification/diagnoses.json');
         if (!res.ok) {
             const errorText = await res.text();
             throw new Error(`HTTP error fetching suggestions! status: ${res.status}, message: ${errorText}, path: /verification/diagnoses.json`);
@@ -130,23 +127,27 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
         const data: DiagnosesData = await res.json();
         rawSuggestedGroupsList = Object.entries(data).map(([groupId, value]: [string, [string[], string[]]], index: number) => {
           const [codes, names] = value;
-          const diagnoses: Diagnosis[] = names.map((name: string, i: number) => ({
-            id: codes[i] ? codes[i].toString() : `unknown-id-${groupId}-${i}-${Date.now()}`,
-            name, description: ''
-          }));
+          const diagnoses: Diagnosis[] = names.map((name: string, i: number) => {
+            // MODIFIED: Generate a more stable fallback ID for diagnoses if code is missing
+            const stableFallbackId = `generated-${groupId}-${name.toLowerCase().replace(/[^a-z0-9]/gi, '')}-${i}`;
+            return {
+              id: codes[i] ? codes[i].toString() : stableFallbackId,
+              name, description: ''
+            };
+          });
           return {
-            id: `suggested-${groupId}-${Date.now()}`, name: `Suggested Group ${index + 1}`, // Ensure unique ID for suggested groups
+            // ID for the suggested group itself can still use Date.now() as these groups are ephemeral in the UI session
+            id: `suggested-group-${groupId}-${Date.now()}`, 
+            name: `Suggested Group ${index + 1}`,
             diagnoses, subgroups: [], collapsed: false
           };
         });
       } catch (error) {
         console.error('Failed to load or parse diagnoses.json:', error);
-        // rawSuggestedGroupsList will remain empty, leading to no suggestions shown
       }
 
-      // --- Process and Reconcile: Filter suggested diagnoses based on what's already in confirmed groups ---
       const diagnosisIdsInConfirmedGroups = new Set<string>();
-      function collectDiagnosisIds(groupList: Group[]) { // Helper to get all diagnosis IDs from confirmed groups
+      function collectDiagnosisIds(groupList: Group[]) {
         for (const group of groupList) {
           group.diagnoses.forEach(d => diagnosisIdsInConfirmedGroups.add(d.id));
           if (group.subgroups) {
@@ -158,47 +159,40 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
 
       const filteredSuggestedGroups = rawSuggestedGroupsList.map(sg => ({
         ...sg,
-        diagnoses: sg.diagnoses.filter(d => !diagnosisIdsInConfirmedGroups.has(d.id)) // Keep only diagnoses NOT in confirmed groups
+        diagnoses: sg.diagnoses.filter(d => !diagnosisIdsInConfirmedGroups.has(d.id))
       }));
 
-      // --- Set States ---
       setGroups(sortGroupsAlphabetically(loadedConfirmedGroups));
-      setSuggestedGroups(filteredSuggestedGroups); // This will trigger the useEffect for currentSuggestedIndex
+      setSuggestedGroups(filteredSuggestedGroups);
       setLoading(false);
     };
 
     if (startConfirmed && computingId.trim()) {
         loadAllData();
     } else {
-        // If not confirmed or no ID, ensure states are reset
         setGroups([]);
         setSuggestedGroups([]);
         setLoading(false);
     }
 
-  }, [startConfirmed, computingId]); // Dependencies for data loading
+  }, [startConfirmed, computingId]);
 
-  // Effect to manage the current suggested index based on the filtered suggestedGroups
   useEffect(() => {
     if (!startConfirmed) {
-        setCurrentSuggestedIndex(0); // Reset if not started
+        setCurrentSuggestedIndex(0);
         return;
     }
-
     if (suggestedGroups.length === 0) {
-      setCurrentSuggestedIndex(0); // Or suggestedGroups.length which would also be 0
+      setCurrentSuggestedIndex(0);
       return;
     }
-    // Find the first suggested group that still has diagnoses after filtering
     const nextIncompleteIndex = suggestedGroups.findIndex((sg: Group) => sg.diagnoses.length > 0);
-
     if (nextIncompleteIndex !== -1) {
       setCurrentSuggestedIndex(nextIncompleteIndex);
     } else {
-      // All suggested groups either had no diagnoses initially or all their diagnoses were filtered out
-      setCurrentSuggestedIndex(suggestedGroups.length); // Indicates all suggestions effectively processed or empty
+      setCurrentSuggestedIndex(suggestedGroups.length);
     }
-  }, [suggestedGroups, startConfirmed]); // Re-run when suggestedGroups (filtered list) changes
+  }, [suggestedGroups, startConfirmed]);
 
   const handleDragStart = (diagnosis: Diagnosis) => setDraggedDiagnosis(diagnosis);
 
@@ -217,14 +211,11 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
     if (!draggedDiagnosis) return;
     setUndoStack(prev => [...prev.slice(-9), groups]);
     const updatedConfirmedGroups = processDropInGroups(groups, targetGroupId, draggedDiagnosis);
-
-    // When a diagnosis is dropped into a confirmed group, it also needs to be removed from the *current* suggestedGroups state
     const updatedSuggestedGroups = suggestedGroups.map((sg: Group) => ({
       ...sg, diagnoses: sg.diagnoses.filter((d: Diagnosis) => d.id !== draggedDiagnosis.id)
     }));
-
-    setGroups(updatedConfirmedGroups); // This is sorted on load/add
-    setSuggestedGroups(updatedSuggestedGroups); // This will trigger the currentSuggestedIndex useEffect
+    setGroups(updatedConfirmedGroups);
+    setSuggestedGroups(updatedSuggestedGroups);
     debouncedUpload(updatedConfirmedGroups);
     setDraggedDiagnosis(null);
   };
@@ -243,7 +234,7 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
       });
     };
     const updatedGroups = addSubgroupRecursive(groups);
-    setGroups(updatedGroups); // Main group order is managed by sortGroupsAlphabetically
+    setGroups(updatedGroups);
     debouncedUpload(updatedGroups);
   };
 
@@ -329,7 +320,6 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
     </motion.div>
   );
 
-  // Initial screen for computing ID
   if (!startConfirmed) {
     return (
       <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center justify-center p-4 space-y-6">
@@ -353,7 +343,6 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
     );
   }
 
-  // Main application UI
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-6 flex flex-col">
       <header className="mb-6 flex flex-wrap justify-between items-center gap-4">
@@ -408,7 +397,7 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
                           }
                           return g;
                         });
-                        setGroups(updatedGroups); // Order is maintained by sort on load/add
+                        setGroups(updatedGroups);
                         debouncedUpload(updatedGroups);
                       } else {
                         const newGroup: Group = {
@@ -420,11 +409,10 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
                         setGroups(updatedGroups);
                         debouncedUpload(updatedGroups);
                       }
-                      // Mark current suggestion's diagnoses as moved by emptying its diagnoses array
                       const updatedSuggested = suggestedGroups.map((sg: Group, idx: number) =>
                         idx === currentSuggestedIndex ? { ...sg, diagnoses: [] } : sg
                       );
-                      setSuggestedGroups(updatedSuggested); // This triggers useEffect to find next suggestion
+                      setSuggestedGroups(updatedSuggested);
                     }}
                     className={cn("bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm flex-1")}
                     disabled={!suggestedGroups[currentSuggestedIndex]?.diagnoses || suggestedGroups[currentSuggestedIndex].diagnoses.length === 0}
@@ -500,3 +488,4 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
 };
 
 export default DiagnosisGroupingApp;
+
