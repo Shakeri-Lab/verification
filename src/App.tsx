@@ -128,7 +128,6 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
         rawSuggestedGroupsList = Object.entries(data).map(([groupId, value]: [string, [string[], string[]]], index: number) => {
           const [codes, names] = value;
           const diagnoses: Diagnosis[] = names.map((name: string, i: number) => {
-            // MODIFIED: Generate a more stable fallback ID for diagnoses if code is missing
             const stableFallbackId = `generated-${groupId}-${name.toLowerCase().replace(/[^a-z0-9]/gi, '')}-${i}`;
             return {
               id: codes[i] ? codes[i].toString() : stableFallbackId,
@@ -136,7 +135,6 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
             };
           });
           return {
-            // ID for the suggested group itself can still use Date.now() as these groups are ephemeral in the UI session
             id: `suggested-group-${groupId}-${Date.now()}`, 
             name: `Suggested Group ${index + 1}`,
             diagnoses, subgroups: [], collapsed: false
@@ -366,7 +364,8 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
       )}
 
       <main className="flex flex-row gap-4 md:gap-6 flex-grow" style={{ height: 'calc(100vh - 150px)' }}>
-        <section className="w-1/3 lg:w-1/4 bg-gray-800 p-4 rounded-lg shadow-lg overflow-y-auto">
+        {/* Left Column: Suggested Groups - MODIFIED width to be consistently w-1/2 */}
+        <section className="w-1/2 bg-gray-800 p-4 rounded-lg shadow-lg overflow-y-auto">
           <h2 className="text-xl font-semibold text-white mb-3 sticky top-0 bg-gray-800 py-2 z-10">Suggested Diagnoses</h2>
           {suggestedGroups.length > 0 && currentSuggestedIndex < suggestedGroups.length && suggestedGroups[currentSuggestedIndex] ? (
             <>
@@ -444,7 +443,8 @@ const DiagnosisGroupingApp = (): React.JSX.Element => {
           )}
         </section>
 
-        <section className="w-2/3 lg:w-3/4 bg-gray-850 p-4 rounded-lg shadow-lg overflow-y-auto relative">
+        {/* Right Column: Confirmed Groups - MODIFIED width to be consistently w-1/2 */}
+        <section className="w-1/2 bg-gray-850 p-4 rounded-lg shadow-lg overflow-y-auto relative">
           <h2 className="text-xl font-semibold text-white mb-3 sticky top-0 bg-gray-850 py-2 z-10">Your Confirmed Groups</h2>
           <AnimatePresence>
             {groups.map((group: Group) => renderGroup(group, 0))}
